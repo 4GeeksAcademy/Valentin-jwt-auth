@@ -57,6 +57,32 @@ def get_all_users():
         return jsonify({'error': 'Error retrieving users: ' + str(e)}), 500
 
 
+@app.route('/token', methods=['POST'])
+def get_token():
+    try:
+        email = request.json.get('email')
+        password = request.json.get('password')
+
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required.'}), 400
+        
+        login_user = User.query.filter_by(email=request.json['email']).one()
+        password_db = login_user.password
+        true_o_false = bcrypt.check_password_hash(password_db, password)
+        
+        if true_o_false:
+            # Lógica para crear y enviar el token
+            user_id = login_user.id
+            access_token = create_access_token(identity=user_id)
+            return { 'access_token':access_token}, 200
+
+        else:
+            return {"Error":"Contraseña  incorrecta"}
+    
+    except Exception as e:
+        return {"Error":"El email proporcionado no corresponde a ninguno registrado: " + str(e)}, 500
+
+
 @app.route('/users/<int:user_id>', methods=['GET'])
 def get_user(user_id):
     user = User.query.get(user_id)
