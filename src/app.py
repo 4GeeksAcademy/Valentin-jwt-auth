@@ -9,6 +9,8 @@ from utils import APIException, generate_sitemap
 from admin import setup_admin
 from models import db, User, Address, Planet, Character, Vehicle, Character_Favorite_List, Planet_Favorite_List, Vehicle_Favorite_List
 
+from utils import generate_token
+
 from flask_bcrypt import Bcrypt  # para encriptar y comparar
 from flask_sqlalchemy import SQLAlchemy  # Para rutas
 from flask_jwt_extended import  JWTManager, create_access_token, jwt_required, get_jwt_identity, unset_jwt_cookies
@@ -45,6 +47,8 @@ def sitemap():
     return generate_sitemap(app)
 
 # ... (definiciones de las rutas para User)
+
+
 
 @app.route('/users', methods=['GET'])
 def get_all_users():
@@ -118,68 +122,58 @@ def create_user():
 
 # ... (login route)
 
-@app.route('/login', methods=['POST'])
-def login():
-    try:
-        session = Session()
-
-        data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        is_active = data.get('is_active')
-
-        if not email or not password:
-            return jsonify({'error': 'Email and password are required'}), 400
-
-        user = session.query(User).filter_by(email=email, password=password).first()
-
-        if user and is_active:
-            token = 'generated_token'
-            session['token'] = token
-            return redirect('/login') # va la ruta del formulario
-        else:
-            return jsonify({'error': 'Invalid credentials or you must activate your user'}), 401
-
-    except Exception as e:
-        return jsonify({'error': 'Error in login: ' + str(e)}), 500
-
-
-
 # @app.route('/login', methods=['POST'])
 # def login():
-#     users = User.query.get(users)
-    
 #     try:
+#         session = Session()
+
 #         data = request.get_json()
 #         email = data.get('email')
 #         password = data.get('password')
 #         is_active = data.get('is_active')
 
-#         if is_active is True: 
+#         if not email or not password:
+#             return jsonify({'error': 'Email and password are required'}), 400
+
+#         user = session.query(User).filter_by(email=email, password=password).first()
+
+#         if user and is_active:
 #             token = 'generated_token'
-
-#             session['token'] = token 
-
-#             return redirect('/private')
+#             session['token'] = token
+#             return redirect('/login') # va la ruta del formulario
 #         else:
-#             return jsonify({'error': 'Invalid credentials'}), 401
+#             return jsonify({'error': 'Invalid credentials or you must activate your user'}), 401
+
+#     except Exception as e:
+#         return jsonify({'error': 'Error in login: ' + str(e)}), 500
 
 
-        # # Validate that the username and password are correct
-        # if username == 'email' and password == 'password':
-        #     # Generate the token object (you can use a library like JWT)
-        #     token = 'generated_token'
 
-        #     # Save the token in sessionStorage
-        #     session['token'] = token
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+        is_active = data.get('is_active')
 
-        #     # Redirect to the /private route
-        #     return redirect('/private')
-        # else:
-        #     return jsonify({'error': 'Invalid credentials'}), 401
+        # Query the User model using the provided email
+        user = User.query.filter_by(email=email).first()
+
+        if user and user.password == password and is_active:
+            # Generate the token object (e.g., using JWT library)
+            token = generate_token(user.id)
+
+            # Save the token in the session
+            session['token'] = token
+
+            return redirect('/private')
+        else:
+            return jsonify({'error': 'Invalid credentials'}), 401
 
     except Exception as e:
         return jsonify({'error': 'Error in login: ' + str(e)}), 500
+
 
 # ... (logout route)
 
