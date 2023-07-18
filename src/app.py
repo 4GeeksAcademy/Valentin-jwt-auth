@@ -82,31 +82,10 @@ def create_user():
 
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
 
-        # username = data.get('username')
-        # name = data.get('name')
-        # surname = data.get('surname')
-        # phone_number = data.get('phone_number')
-
-        # if not username or not name or not surname or not phone_number:
-        #     return jsonify(message='Missing required fields'), 400
-
-        # address_data = data.get('address')
-        # if not address_data:
-        #     return jsonify(message='Address is required'), 400
-
-        # street_name = address_data.get('street_name')
-        # street_number = address_data.get('street_number')
-        # postal_code = address_data.get('postal_code')
-
-        # if not street_name or not street_number or not postal_code:
-        #     return jsonify(message='Missing required fields for address'), 400
+        
 
         new_user = User(email=email, password=password_hash, is_active = False)
         
-        # (username=username, password=password_hash, name=name, surname=surname,
-        #                 phone_number=phone_number, email=email)
-        # new_address = Address(street_name=street_name, street_number=street_number, postal_code=postal_code)
-        # new_user.address = new_address
 
         db.session.add(new_user)
         db.session.commit()
@@ -122,25 +101,22 @@ def create_user():
 def login():
     try:
         data = request.get_json()
-        email = data.get('email')
-        password = data.get('password')
-        is_active = data.get('is_active')
 
         # # Query the User model using the provided email
     
-        if not email or not password:
+        if not data["email"] or not data["password"]:
             return jsonify({'error': 'Email and password are required.'}), 400
         
-        login_user = User.query.filter_by(email=request.json['email']).one()
-        password_db = login_user.password
-        true_o_false = bcrypt.check_password_hash(password_db, password)
+        login_user = User.query.filter_by(email=data['email']).first()
+        password_db = login_user["password"]
+        true_o_false = bcrypt.check_password_hash(password_db, data["password"])
         
         if true_o_false:
             # Lógica para crear y enviar el token
-            user_id = login_user.id
-            access_token = create_access_token(identity=user_id)
-            form_status = login_user.is_active 
-            return jsonify({ 'access_token':access_token, 'form_status':form_status}), 200
+            # user_id = login_user.id
+            access_token = create_access_token(identity=login_user["id"])
+            form_status = login_user["is_active"]
+            return jsonify({ 'access_token':access_token, 'form_status':form_status, "user": login_user}), 200
         else:
             return {"Error":"Contraseña  incorrecta"}
 
@@ -172,11 +148,14 @@ def logout():
 # ... (Private route)
 
 @app.route('/private')
+@jwt_required()
 def private():
-    token = session.get('token')
-    if token:
+    current_user = get_jwt_identity()
+    login_user = User.query.get(current_user).first()
+    # token = session.get('token')
+    if login_user:
         # User is authenticated, perform private actions
-        return jsonify({'message': 'Welcome to the private area!'})
+        return jsonify({'message': 'Welcome to the private area!', "user": login_user})
     else:
         return jsonify({'error': 'Unauthorized'}), 401
 
