@@ -81,12 +81,7 @@ def create_user():
             return jsonify({'error': 'Email already exists.'}), 409
 
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-
-        
-
         new_user = User(email=email, password=password_hash, is_active = False)
-        
-
         db.session.add(new_user)
         db.session.commit()
 
@@ -102,36 +97,19 @@ def login():
     try:
         data = request.get_json()
 
-        # # Query the User model using the provided email
-    
         if not data["email"] or not data["password"]:
             return jsonify({'error': 'Email and password are required.'}), 400
         
         login_user = User.query.filter_by(email=data['email']).first()
-        password_db = login_user["password"]
-        true_o_false = bcrypt.check_password_hash(password_db, data["password"])
+        password_db = login_user.password  # Utilisez l'attribut "password" au lieu de "login_user["password"]"
+        true_or_false = bcrypt.check_password_hash(password_db, data["password"])
         
-        if true_o_false:
-            # Lógica para crear y enviar el token
-            # user_id = login_user.id
-            access_token = create_access_token(identity=login_user["id"])
-            form_status = login_user["is_active"]
-            return jsonify({ 'access_token':access_token, 'form_status':form_status, "user": login_user}), 200
+        if true_or_false:
+            access_token = create_access_token(identity=login_user.id)  # Utilisez l'attribut "id" au lieu de "login_user["id"]"
+            form_status = login_user.is_active  # Utilisez l'attribut "is_active" au lieu de "login_user["is_active"]"
+            return jsonify({ 'access_token': access_token, 'form_status': form_status, "user": login_user.to_dict()}), 200
         else:
-            return {"Error":"Contraseña  incorrecta"}
-
-        # and user.password == password:
-        # and is_active:
-            # Generate the token object (e.g., using JWT library)
-            token = generate_token(user.id)
-
-        #     # Save the token in the session
-        #     session['token'] = token
-
-          
-        #     return redirect(url_for('/private'))
-        # else:
-            # return jsonify({'error': 'Invalid credentials'}), 401
+            return {"Error": "Incorrect password"}
 
     except Exception as e:
         return jsonify({'error': 'Error in login: ' + str(e)}), 500
